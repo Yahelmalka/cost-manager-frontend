@@ -1,34 +1,29 @@
-/**
- * Theme configuration for Cost Manager Application
- * Pastel minimal aesthetic with custom color palette
- */
-
 import { createTheme } from '@mui/material/styles';
 
 const theme = createTheme({
     palette: {
         primary: {
-            main: '#43302E', // Old Burgundy
+            main: '#43302E', 
             light: '#6B5B58',
             dark: '#2A1F1D',
             contrastText: '#FFFFFF'
         },
         secondary: {
-            main: '#C1DBE8', // Pastel Blue
+            main: '#C1DBE8', 
             light: '#E0F0F5',
             dark: '#9BC4D3',
             contrastText: '#43302E'
         },
         background: {
-            default: '#FAFAF7', // Off-white warm gray
-            paper: '#FFFFFF' // Pure white for cards
+            default: '#FAFAF7', 
+            paper: '#FFFFFF' 
         },
         text: {
-            primary: '#43302E', // Old Burgundy
-            secondary: '#6B5B58' // Softer brown/gray
+            primary: '#43302E', 
+            secondary: '#6B5B58' 
         },
         accent: {
-            buttermilk: '#FFF1B5', // Warm pastel yellow
+            buttermilk: '#FFF1B5', 
             pastelBlue: '#C1DBE8',
             oldBurgundy: '#43302E'
         },
@@ -97,11 +92,11 @@ const theme = createTheme({
         },
         button: {
             fontWeight: 500,
-            textTransform: 'none' // Keep button text as-is, not uppercase
+            textTransform: 'none' 
         }
     },
     shape: {
-        borderRadius: 16 // Rounded corners (12-20px range)
+        borderRadius: 16 
     },
     components: {
         MuiButton: {

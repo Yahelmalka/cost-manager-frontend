@@ -21,11 +21,6 @@ import { fetchExchangeRates, convertCurrency, getExchangeRateURL } from '../util
 import PageLayout from './common/PageLayout';
 import PrimaryCard from './common/PrimaryCard';
 
-/**
- * Report component for displaying monthly cost reports
- * @param {Object} props - Component props
- * @param {Object} props.db - Database instance from idb.js
- */
 function Report({ db }) {
     const [year, setYear] = useState(new Date().getFullYear());
     const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -35,9 +30,6 @@ function Report({ db }) {
     const [error, setError] = useState('');
     const [exchangeRates, setExchangeRates] = useState(null);
 
-    /**
-     * Loads exchange rates
-     */
     useEffect(function() {
         async function loadRates() {
             const url = getExchangeRateURL();
@@ -47,9 +39,6 @@ function Report({ db }) {
         loadRates();
     }, []);
 
-    /**
-     * Generates the report
-     */
     const handleGenerateReport = async function() {
         if (!exchangeRates) {
             setError('Exchange rates not loaded yet. Please wait...');
@@ -61,16 +50,13 @@ function Report({ db }) {
         
         try {
             const reportData = await db.getReport(year, month, currency);
-            
-            // Convert all costs to the target currency
             const convertedCosts = reportData.costs.map(function(cost) {
                 return {
                     ...cost,
                     sum: convertCurrency(cost.sum, cost.currency, currency, exchangeRates)
                 };
             });
-            
-            // Calculate total in target currency
+                    
             let total = 0;
             convertedCosts.forEach(function(cost) {
                 total += cost.sum;

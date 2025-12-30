@@ -1,8 +1,3 @@
-/**
- * Main App component
- * Cost Manager Application
- */
-
 import React, { useState, useEffect } from 'react';
 import {
     Container,
@@ -23,10 +18,6 @@ import Settings from './components/Settings';
 const DATABASE_NAME = 'CostManagerDB';
 const DATABASE_VERSION = 1;
 
-/**
- * TabPanel component for rendering tab content
- * @param {Object} props - Component props
- */
 function TabPanel(props) {
     const { children, value, index, ...other } = props;
 
@@ -47,17 +38,13 @@ function TabPanel(props) {
     );
 }
 
-/**
- * Main App component
- */
+
 function App() {
     const [db, setDb] = useState(null);
     const [tabValue, setTabValue] = useState(0);
     const [refreshKey, setRefreshKey] = useState(0);
 
-    /**
-     * Initializes the database
-     */
+
     useEffect(function() {
         async function initDB() {
             try {
@@ -70,18 +57,10 @@ function App() {
         initDB();
     }, []);
 
-    /**
-     * Handles tab change
-     * @param {Event} event - Change event
-     * @param {number} newValue - New tab index
-     */
     const handleTabChange = function(event, newValue) {
         setTabValue(newValue);
     };
 
-    /**
-     * Handles cost added callback
-     */
     const handleCostAdded = function() {
         setRefreshKey(function(prev) {
             return prev + 1;

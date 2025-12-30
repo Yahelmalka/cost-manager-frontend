@@ -8,8 +8,6 @@ export function openCostsDB(databaseName, databaseVersion) {
 
         request.onsuccess = function() {
             const db = request.result;
-            
-            // Return an object with methods for database operations
             resolve({
                 db: db,
                 addCost: function(cost) {

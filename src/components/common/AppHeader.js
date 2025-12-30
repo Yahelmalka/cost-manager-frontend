@@ -1,9 +1,5 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography } from '@mui/material';
-
-/**
- * AppHeader component for the top navigation bar
- */
 function AppHeader() {
     return (
         <AppBar 
