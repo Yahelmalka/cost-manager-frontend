@@ -1,0 +1,256 @@
+import React, { useState, useEffect } from 'react';
+import {
+    Box,
+    Typography,
+    TextField,
+    MenuItem,
+    Button,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Alert,
+    CircularProgress,
+    Paper,
+    Chip
+} from '@mui/material';
+import { SUPPORTED_CURRENCIES } from '../utils/currencyConverter';
+import { fetchExchangeRates, convertCurrency, getExchangeRateURL } from '../utils/currencyConverter';
+import PageLayout from './common/PageLayout';
+import PrimaryCard from './common/PrimaryCard';
+
+/**
+ * Report component for displaying monthly cost reports
+ * @param {Object} props - Component props
+ * @param {Object} props.db - Database instance from idb.js
+ */
+function Report({ db }) {
+    const [year, setYear] = useState(new Date().getFullYear());
+    const [month, setMonth] = useState(new Date().getMonth() + 1);
+    const [currency, setCurrency] = useState('USD');
+    const [report, setReport] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [exchangeRates, setExchangeRates] = useState(null);
+
+    /**
+     * Loads exchange rates
+     */
+    useEffect(function() {
+        async function loadRates() {
+            const url = getExchangeRateURL();
+            const rates = await fetchExchangeRates(url);
+            setExchangeRates(rates);
+        }
+        loadRates();
+    }, []);
+
+    /**
+     * Generates the report
+     */
+    const handleGenerateReport = async function() {
+        if (!exchangeRates) {
+            setError('Exchange rates not loaded yet. Please wait...');
+            return;
+        }
+        
+        setLoading(true);
+        setError('');
+        
+        try {
+            const reportData = await db.getReport(year, month, currency);
+            
+            // Convert all costs to the target currency
+            const convertedCosts = reportData.costs.map(function(cost) {
+                return {
+                    ...cost,
+                    sum: convertCurrency(cost.sum, cost.currency, currency, exchangeRates)
+                };
+            });
+            
+            // Calculate total in target currency
+            let total = 0;
+            convertedCosts.forEach(function(cost) {
+                total += cost.sum;
+            });
+            
+            setReport({
+                ...reportData,
+                costs: convertedCosts,
+                total: {
+                    currency: currency,
+                    total: Math.round(total * 100) / 100
+                }
+            });
+        } catch (err) {
+            setError('Failed to generate report: ' + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    return (
+        <PageLayout 
+            title="Monthly Report"
+            subtitle="View detailed expense reports for any month and year"
+            maxWidth="lg"
+        >
+            <PrimaryCard sx={{ mb: 3 }}>
+                <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#43302E' }}>
+                    Filter Options
+                </Typography>
+                
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <TextField
+                        label="Year"
+                        type="number"
+                        value={year}
+                        onChange={(e) => setYear(parseInt(e.target.value))}
+                        inputProps={{ min: 2000, max: 2100 }}
+                        sx={{ minWidth: 120 }}
+                    />
+                    
+                    <TextField
+                        select
+                        label="Month"
+                        value={month}
+                        onChange={(e) => setMonth(parseInt(e.target.value))}
+                        sx={{ minWidth: 180 }}
+                    >
+                        {months.map(function(monthName, index) {
+                            return (
+                                <MenuItem key={index + 1} value={index + 1}>
+                                    {monthName}
+                                </MenuItem>
+                            );
+                        })}
+                    </TextField>
+                    
+                    <TextField
+                        select
+                        label="Currency"
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        sx={{ minWidth: 140 }}
+                    >
+                        {SUPPORTED_CURRENCIES.map(function(curr) {
+                            return (
+                                <MenuItem key={curr} value={curr}>
+                                    {curr}
+                                </MenuItem>
+                            );
+                        })}
+                    </TextField>
+                    
+                    <Button
+                        variant="contained"
+                        onClick={handleGenerateReport}
+                        disabled={loading || !exchangeRates}
+                        sx={{
+                            backgroundColor: '#43302E',
+                            color: '#FFFFFF',
+                            px: 4,
+                            '&:hover': {
+                                backgroundColor: '#2A1F1D'
+                            }
+                        }}
+                    >
+                        {loading ? <CircularProgress size={24} color="inherit" /> : 'Generate Report'}
+                    </Button>
+                </Box>
+            </PrimaryCard>
+            
+            {error && (
+                <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+                    {error}
+                </Alert>
+            )}
+            
+            {report && (
+                <PrimaryCard>
+                    <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#43302E' }}>
+                        Report for {months[month - 1]} {year}
+                    </Typography>
+                    
+                    {report.costs.length === 0 ? (
+                        <Box sx={{ textAlign: 'center', py: 6 }}>
+                            <Typography variant="body1" sx={{ color: '#6B5B58' }}>
+                                No costs found for this period
+                            </Typography>
+                        </Box>
+                    ) : (
+                        <>
+                            <TableContainer>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                                            <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                                            <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
+                                            <TableCell align="right" sx={{ fontWeight: 600 }}>
+                                                Sum ({currency})
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {report.costs.map(function(cost, index) {
+                                            return (
+                                                <TableRow 
+                                                    key={index}
+                                                    sx={{
+                                                        '&:hover': {
+                                                            backgroundColor: 'rgba(193, 219, 232, 0.05)'
+                                                        }
+                                                    }}
+                                                >
+                                                    <TableCell>{cost.Date.day}</TableCell>
+                                                    <TableCell>{cost.category}</TableCell>
+                                                    <TableCell>{cost.description}</TableCell>
+                                                    <TableCell align="right">
+                                                        {cost.sum.toFixed(2)}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                            
+                            <Box sx={{ 
+                                mt: 4, 
+                                display: 'flex', 
+                                justifyContent: 'flex-end',
+                                alignItems: 'center',
+                                gap: 2
+                            }}>
+                                <Typography variant="body1" sx={{ color: '#6B5B58', fontWeight: 500 }}>
+                                    Total:
+                                </Typography>
+                                <Chip
+                                    label={`${report.total.total.toFixed(2)} ${report.total.currency}`}
+                                    sx={{
+                                        backgroundColor: '#FFF1B5',
+                                        color: '#43302E',
+                                        fontSize: '1.1rem',
+                                        fontWeight: 600,
+                                        height: 40,
+                                        px: 2
+                                    }}
+                                />
+                            </Box>
+                        </>
+                    )}
+                </PrimaryCard>
+            )}
+        </PageLayout>
+    );
+}
+
+export default Report;
