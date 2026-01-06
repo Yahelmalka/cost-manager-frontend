@@ -49,32 +49,20 @@ function Report({ db }) {
     }, []);
 
     // Automatically recalculates report when currency selection changes
-    // Converts all costs to new currency and updates totals
+    // Calls getReport again with new currency to get converted data
     useEffect(function() {
         if (originalCosts && exchangeRates && reportYear !== null && reportMonth !== null) {
-            const convertedCosts = originalCosts.map(function(cost) {
-                return {
-                    ...cost,
-                    sum: convertCurrency(cost.sum, cost.currency, currency, exchangeRates)
-                };
-            });
-                    
-            let total = 0;
-            convertedCosts.forEach(function(cost) {
-                total += cost.sum;
-            });
-            
-            setReport({
-                year: reportYear,
-                month: reportMonth,
-                costs: convertedCosts,
-                total: {
-                    currency: currency,
-                    total: Math.round(total * 100) / 100
+            async function recalculateReport() {
+                try {
+                    const reportData = await db.getReport(reportYear, reportMonth, currency, exchangeRates);
+                    setReport(reportData);
+                } catch (err) {
+                    console.error('Failed to recalculate report:', err);
                 }
-            });
+            }
+            recalculateReport();
         }
-    }, [currency, exchangeRates, originalCosts, reportYear, reportMonth]);
+    }, [currency, exchangeRates, originalCosts, reportYear, reportMonth, db]);
 
     // Generates monthly report by querying database and converting currencies
     // Stores original costs for automatic recalculation when currency changes
@@ -88,31 +76,14 @@ function Report({ db }) {
         setError('');
         
         try {
-            const reportData = await db.getReport(year, month, currency);
+            // getReport now handles currency conversion internally
+            const reportData = await db.getReport(year, month, currency, exchangeRates);
             setOriginalCosts(reportData.costs);
             setReportYear(year);
             setReportMonth(month);
             
-            const convertedCosts = reportData.costs.map(function(cost) {
-                return {
-                    ...cost,
-                    sum: convertCurrency(cost.sum, cost.currency, currency, exchangeRates)
-                };
-            });
-                    
-            let total = 0;
-            convertedCosts.forEach(function(cost) {
-                total += cost.sum;
-            });
-            
-            setReport({
-                ...reportData,
-                costs: convertedCosts,
-                total: {
-                    currency: currency,
-                    total: Math.round(total * 100) / 100
-                }
-            });
+            // Report data is already converted to the selected currency
+            setReport(reportData);
         } catch (err) {
             setError('Failed to generate report: ' + err.message);
         } finally {

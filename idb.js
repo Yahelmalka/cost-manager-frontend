@@ -22,8 +22,8 @@
                     addCost: function(cost) {
                         return addCost(db, cost);
                     },
-                    getReport: function(year, month, currency) {
-                        return getReport(db, year, month, currency);
+                    getReport: function(year, month, currency, exchangeRates) {
+                        return getReport(db, year, month, currency, exchangeRates);
                     }
                 });
             };
@@ -104,10 +104,29 @@
             };
         });
     }
+    // Converts currency amount using exchange rates
+    // Helper function for currency conversion in getReport
+    function convertCurrency(amount, fromCurrency, toCurrency, exchangeRates) {
+        if (fromCurrency === toCurrency) {
+            return amount;
+        }
+        const fromRate = exchangeRates[fromCurrency] || 1;
+        const toRate = exchangeRates[toCurrency] || 1;
+        const amountInUSD = amount / fromRate;
+        const convertedAmount = amountInUSD * toRate;
+        return Math.round(convertedAmount * 100) / 100;
+    }
+
     // Retrieves monthly report with all costs for specified period
-    // Uses composite index for efficient year-month querying
-    function getReport(db, year, month, currency) {
+    // Converts all costs to the specified currency using exchange rates
+    function getReport(db, year, month, currency, exchangeRates) {
         return new Promise(function(resolve, reject) {
+            // Validate exchange rates are provided
+            if (!exchangeRates || typeof exchangeRates !== 'object') {
+                reject(new Error('Exchange rates must be provided for currency conversion'));
+                return;
+            }
+
             const transaction = db.transaction(['costs'], 'readonly');
             const objectStore = transaction.objectStore('costs');
             const index = objectStore.index('yearMonth');
@@ -121,21 +140,29 @@
                 reject(new Error('Failed to get report: ' + request.error));
             };
             
-            // Transforms costs and calculates total sum
-            // Returns report object with costs array and total amount
+            // Transforms costs, converts to target currency, and calculates total
+            // Returns report object with converted costs array and total amount
             request.onsuccess = function() {
                 const costs = request.result;
                 
+                // Convert each cost to the target currency
                 const reportCosts = costs.map(function(cost) {
+                    const convertedSum = convertCurrency(
+                        cost.sum, 
+                        cost.currency, 
+                        currency, 
+                        exchangeRates
+                    );
                     return {
-                        sum: cost.sum,
-                        currency: cost.currency,
+                        sum: convertedSum,
+                        currency: currency,
                         category: cost.category,
                         description: cost.description,
                         Date: cost.Date
                     };
                 });
                 
+                // Calculate total sum of all converted costs
                 let total = 0;
                 reportCosts.forEach(function(cost) {
                     total += cost.sum;
@@ -147,7 +174,7 @@
                     costs: reportCosts,
                     total: {
                         currency: currency,
-                        total: total 
+                        total: Math.round(total * 100) / 100
                     }
                 };
                 
