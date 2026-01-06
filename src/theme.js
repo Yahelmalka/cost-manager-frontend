@@ -1,6 +1,10 @@
 import { createTheme } from '@mui/material/styles';
 
+// Custom MUI theme with pastel minimal color palette
+// Defines consistent styling across all application components
 const theme = createTheme({
+    // Color palette matching pastel minimal design aesthetic
+    // Primary colors: Old Burgundy, Secondary: Pastel Blue, Accent: Buttermilk
     palette: {
         primary: {
             main: '#43302E', 
@@ -48,6 +52,8 @@ const theme = createTheme({
             dark: '#FFE082'
         }
     },
+    // Typography settings for consistent text styling
+    // Defines font weights and colors for headings and body text
     typography: {
         fontFamily: [
             '-apple-system',

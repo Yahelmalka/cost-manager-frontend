@@ -1,5 +1,7 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography } from '@mui/material';
+// Application header component with centered title
+// Displays main application name with elegant serif typography
 function AppHeader() {
     return (
         <AppBar 
@@ -17,6 +19,8 @@ function AppHeader() {
                     justifyContent: 'center'
                 }}
             >
+                {/* Centered app title with elegant serif font */}
+                {/* Uses Playfair Display for premium brand appearance */}
                 <Typography 
                     variant="h4" 
                     component="div" 

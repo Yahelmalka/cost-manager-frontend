@@ -1,14 +1,11 @@
 import React from 'react';
 import { Paper, Box } from '@mui/material';
 
-/**
- * PrimaryCard component for consistent card styling
- * @param {Object} props - Component props
- * @param {React.ReactNode} props.children - Card content
- * @param {Object} props.sx - Additional sx styles
- * @param {number} props.maxWidth - Maximum width (default: 'md')
- */
+// Reusable card component with consistent pastel minimal styling
+// Provides uniform container for page content with soft shadows
 function PrimaryCard({ children, sx = {}, maxWidth = 'md' }) {
+    // Maps string maxWidth values to pixel values
+    // Supports responsive sizing: sm, md, lg, xl or custom pixel values
     const maxWidthMap = {
         sm: 600,
         md: 800,

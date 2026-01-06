@@ -1,3 +1,5 @@
+// Opens IndexedDB database and returns promise with database wrapper object
+// Creates database schema on first run with object store and indexes
 export function openCostsDB(databaseName, databaseVersion) {
     return new Promise(function(resolve, reject) {
         const request = indexedDB.open(databaseName, databaseVersion);
@@ -6,6 +8,8 @@ export function openCostsDB(databaseName, databaseVersion) {
             reject(new Error('Failed to open database: ' + request.error));
         };
 
+        // Returns database wrapper with methods for cost operations
+        // Provides interface for adding costs and querying by date/category
         request.onsuccess = function() {
             const db = request.result;
             resolve({
@@ -28,6 +32,8 @@ export function openCostsDB(databaseName, databaseVersion) {
             });
         };
 
+        // Creates database schema on first initialization
+        // Sets up object store with auto-increment ID and indexes for queries
         request.onupgradeneeded = function(event) {
             const db = event.target.result;
             if (!db.objectStoreNames.contains('costs')) {
@@ -44,8 +50,12 @@ export function openCostsDB(databaseName, databaseVersion) {
     });
 }
 
+// Adds new cost item to database with validation and date handling
+// Uses provided date or falls back to current date if not specified
 function addCost(db, cost) {
     return new Promise(function(resolve, reject) {
+        // Validates cost object has required fields with correct types
+        // Ensures data integrity before database insertion
         if (!cost || typeof cost.sum !== 'number' || 
             typeof cost.currency !== 'string' || 
             typeof cost.category !== 'string' || 
@@ -57,10 +67,12 @@ function addCost(db, cost) {
         const transaction = db.transaction(['costs'], 'readwrite');
         const objectStore = transaction.objectStore('costs');
 
+        // Uses provided date or current date as fallback
+        // Extracts day, month, and year for database storage
         const now = new Date();
-        const day = now.getDate();
-        const month = now.getMonth() + 1; // JavaScript months are 0-indexed
-        const year = now.getFullYear();
+        const day = cost.day !== undefined ? cost.day : now.getDate();
+        const month = cost.month !== undefined ? cost.month : (now.getMonth() + 1);
+        const year = cost.year !== undefined ? cost.year : now.getFullYear();
 
         const costItem = {
             sum: cost.sum,
@@ -80,6 +92,8 @@ function addCost(db, cost) {
             reject(new Error('Failed to add cost: ' + request.error));
         };
         
+        // Returns added cost item without database ID
+        // Provides confirmation of successful insertion
         request.onsuccess = function() {
             resolve({
                 sum: costItem.sum,
@@ -91,12 +105,16 @@ function addCost(db, cost) {
     });
 }
 
+// Retrieves monthly report with all costs for specified year and month
+// Uses composite index for efficient querying by year and month
 function getReport(db, year, month, currency) {
     return new Promise(function(resolve, reject) {
         const transaction = db.transaction(['costs'], 'readonly');
         const objectStore = transaction.objectStore('costs');
         const index = objectStore.index('yearMonth');
         
+        // Queries costs matching exact year and month combination
+        // Uses composite index for optimal performance
         const range = IDBKeyRange.only([year, month]);
         const request = index.getAll(range);
         
@@ -104,6 +122,8 @@ function getReport(db, year, month, currency) {
             reject(new Error('Failed to get report: ' + request.error));
         };
         
+        // Transforms costs and calculates total sum
+        // Returns report object with costs array and total amount
         request.onsuccess = function() {
             const costs = request.result;
             const reportCosts = costs.map(function(cost) {
@@ -136,6 +156,8 @@ function getReport(db, year, month, currency) {
     });
 }
 
+// Retrieves all cost items from database without filtering
+// Used for comprehensive data retrieval and chart generation
 function getAllCosts(db) {
     return new Promise(function(resolve, reject) {
         const transaction = db.transaction(['costs'], 'readonly');
@@ -152,6 +174,8 @@ function getAllCosts(db) {
     });
 }
 
+// Retrieves costs filtered by specific year and month
+// Uses composite index for efficient date-based querying
 function getCostsByYearMonth(db, year, month) {
     return new Promise(function(resolve, reject) {
         const transaction = db.transaction(['costs'], 'readonly');
@@ -171,6 +195,8 @@ function getCostsByYearMonth(db, year, month) {
     });
 }
 
+// Retrieves all costs for a specific year across all months
+// Used for bar chart generation showing monthly totals
 function getCostsByYear(db, year) {
     return new Promise(function(resolve, reject) {
         const transaction = db.transaction(['costs'], 'readonly');

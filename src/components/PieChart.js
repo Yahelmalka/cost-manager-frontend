@@ -16,6 +16,8 @@ import PageLayout from './common/PageLayout';
 import PrimaryCard from './common/PrimaryCard';
 import TotalSummary from './common/TotalSummary';
 
+// Pastel color palette for pie chart segments
+// Provides visual distinction between different expense categories
 const CHART_COLORS = [
     '#C1DBE8',
     '#FFF1B5',
@@ -27,15 +29,22 @@ const CHART_COLORS = [
     '#E8D4B5'
 ];
 
+// Component displays expense breakdown by category as animated pie chart
+// Supports currency conversion and automatic updates when currency changes
 function PieChart({ db }) {
+    // State management for chart filters, data, and loading states
+    // Tracks selected period, currency, and chart rendering status
     const [year, setYear] = useState(new Date().getFullYear());
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [currency, setCurrency] = useState('USD');
     const [chartData, setChartData] = useState([]);
+    const [originalCosts, setOriginalCosts] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [exchangeRates, setExchangeRates] = useState(null);
 
+    // Fetches exchange rates on component mount for currency conversion
+    // Uses configured URL from settings or default server endpoint
     useEffect(function() {
         async function loadRates() {
             const url = getExchangeRateURL();
@@ -45,6 +54,17 @@ function PieChart({ db }) {
         loadRates();
     }, []);
 
+    // Automatically updates chart when currency selection changes
+    // Recalculates category totals in new currency without reloading data
+    useEffect(function() {
+        if (originalCosts && exchangeRates && originalCosts.length > 0) {
+            const data = preparePieChartData(originalCosts, currency, exchangeRates);
+            setChartData(data);
+        }
+    }, [currency, exchangeRates, originalCosts]);
+
+    // Generates pie chart by fetching costs and grouping by category
+    // Stores original costs for automatic currency conversion updates
     const handleGenerateChart = async function() {
         if (!exchangeRates) {
             setError('Exchange rates not loaded yet. Please wait...');
@@ -59,10 +79,13 @@ function PieChart({ db }) {
             
             if (costs.length === 0) {
                 setChartData([]);
+                setOriginalCosts(null);
                 setError('No costs found for this period');
                 setLoading(false);
                 return;
             }
+            
+            setOriginalCosts(costs);
             
             const data = preparePieChartData(costs, currency, exchangeRates);
             setChartData(data);
@@ -78,6 +101,8 @@ function PieChart({ db }) {
         'July', 'August', 'September', 'October', 'November', 'December'
     ];
 
+    // Calculates total spending from chart data for summary display
+    // Sums all category values to show overall expense amount
     const total = chartData.reduce(function(sum, item) {
         return sum + (item.value || 0);
     }, 0);
@@ -171,11 +196,13 @@ function PieChart({ db }) {
                 </Alert>
             )}
             
+            {/* Renders animated pie chart with category breakdown */}
+            {/* Key prop triggers animation when data or currency changes */}
             {chartData.length > 0 ? (
                 <PrimaryCard>
                     <Box sx={{ width: '100%', height: 450, mt: 2 }}>
                         <ResponsiveContainer>
-                            <RechartsPieChart>
+                            <RechartsPieChart key={`${year}-${month}-${currency}-${JSON.stringify(chartData.map(d => d.value)).slice(0, 20)}`}>
                                 <Pie
                                     data={chartData}
                                     cx="50%"
@@ -187,11 +214,15 @@ function PieChart({ db }) {
                                     outerRadius={140}
                                     fill="#8884d8"
                                     dataKey="value"
+                                    isAnimationActive={true}
+                                    animationBegin={0}
+                                    animationDuration={800}
+                                    animationEasing="ease-out"
                                 >
                                     {chartData.map(function(entry, index) {
                                         return (
                                             <Cell 
-                                                key={`cell-${index}`} 
+                                                key={`cell-${entry.name}-${index}`} 
                                                 fill={CHART_COLORS[index % CHART_COLORS.length]} 
                                             />
                                         );
@@ -207,6 +238,7 @@ function PieChart({ db }) {
                                         borderRadius: 8,
                                         color: '#43302E'
                                     }}
+                                    animationDuration={200}
                                 />
                                 <Legend 
                                     wrapperStyle={{

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 
+// Component displays total summary with subtle minimal styling
+// Shows total amount in selected currency with optional info message
 function TotalSummary({ total, currency, label, showInfo = false }) {
     const displayTotal = total || 0;
     const hasData = total > 0;
@@ -22,6 +24,8 @@ function TotalSummary({ total, currency, label, showInfo = false }) {
                 mx: 'auto'
             }}
         >
+            {/* Label text above total amount */}
+            {/* Small caption text with reduced opacity for subtle appearance */}
             <Typography
                 variant="caption"
                 sx={{
@@ -34,6 +38,8 @@ function TotalSummary({ total, currency, label, showInfo = false }) {
             >
                 {label}
             </Typography>
+            {/* Total amount in selected currency */}
+            {/* Medium-sized text with Old Burgundy color for emphasis */}
             <Typography
                 variant="h6"
                 sx={{
@@ -45,6 +51,8 @@ function TotalSummary({ total, currency, label, showInfo = false }) {
             >
                 {displayTotal.toFixed(2)} {currency}
             </Typography>
+            {/* Optional info message when no data available */}
+            {/* Shown only when showInfo is true and total is zero */}
             {!hasData && showInfo && (
                 <Typography
                     variant="caption"

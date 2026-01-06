@@ -18,6 +18,8 @@ import Settings from './components/Settings';
 const DATABASE_NAME = 'CostManagerDB';
 const DATABASE_VERSION = 1;
 
+// Wrapper component for tab panel content
+// Manages visibility of tab content based on selected tab index
 function TabPanel(props) {
     const { children, value, index, ...other } = props;
 
@@ -39,12 +41,18 @@ function TabPanel(props) {
 }
 
 
+// Main application component with tab-based navigation
+// Manages database connection and coordinates all page components
 function App() {
+    // State for database instance, active tab, and refresh trigger
+    // Refresh key forces child components to reload when costs are added
     const [db, setDb] = useState(null);
     const [tabValue, setTabValue] = useState(0);
     const [refreshKey, setRefreshKey] = useState(0);
 
 
+    // Initializes IndexedDB connection on component mount
+    // Opens database and stores reference for child components
     useEffect(function() {
         async function initDB() {
             try {
@@ -57,16 +65,22 @@ function App() {
         initDB();
     }, []);
 
+    // Handles tab navigation when user clicks different tabs
+    // Updates active tab index to show corresponding content
     const handleTabChange = function(event, newValue) {
         setTabValue(newValue);
     };
 
+    // Callback triggered when new cost is added
+    // Increments refresh key to force charts and reports to reload
     const handleCostAdded = function() {
         setRefreshKey(function(prev) {
             return prev + 1;
         });
     };
 
+    // Show loading screen while database initializes
+    // Prevents rendering components before database is ready
     if (!db) {
         return (
             <Box sx={{ 
@@ -93,6 +107,8 @@ function App() {
         }}>
             <AppHeader />
             
+            {/* Navigation tabs container with pastel styling */}
+            {/* Provides access to all main application sections */}
             <Box sx={{ 
                 backgroundColor: '#FFFFFF',
                 borderBottom: '1px solid rgba(193, 219, 232, 0.3)'
@@ -118,6 +134,8 @@ function App() {
                 </Container>
             </Box>
             
+            {/* Conditionally render page components based on active tab */}
+            {/* Refresh key forces reload when new costs are added */}
             <TabPanel value={tabValue} index={0}>
                 <AddCost db={db} onCostAdded={handleCostAdded} />
             </TabPanel>

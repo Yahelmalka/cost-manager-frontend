@@ -6,6 +6,8 @@ import theme from './theme';
 import './index.css';
 import App from './App';
 
+// Create React root and render application with theme provider
+// Applies custom pastel minimal theme and CSS reset globally
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
     <React.StrictMode>

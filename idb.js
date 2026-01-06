@@ -1,5 +1,9 @@
+// Vanilla JavaScript version of idb library for IndexedDB operations
+// Wraps IndexedDB API with Promise-based interface for easier usage
 (function() {
     'use strict';
+    // Opens IndexedDB database and returns promise with database wrapper
+    // Creates schema on first run with object store and indexes
     function openCostsDB(databaseName, databaseVersion) {
         return new Promise(function(resolve, reject) {
             const request = indexedDB.open(databaseName, databaseVersion);
@@ -8,6 +12,8 @@
                 reject(new Error('Failed to open database: ' + request.error));
             };
 
+            // Returns database wrapper with addCost and getReport methods
+            // Provides clean interface for cost management operations
             request.onsuccess = function() {
                 const db = request.result;
          
@@ -22,6 +28,8 @@
                 });
             };
 
+            // Creates database schema on first initialization
+            // Sets up object store with auto-increment ID and query indexes
             request.onupgradeneeded = function(event) {
                 const db = event.target.result;
              
@@ -41,9 +49,12 @@
     }
 
 
+    // Adds new cost item to database with validation
+    // Uses current date if no date is provided in cost object
     function addCost(db, cost) {
         return new Promise(function(resolve, reject) {
-            // Validate cost object
+            // Validates cost object structure and field types
+            // Ensures data integrity before database insertion
             if (!cost || typeof cost.sum !== 'number' || 
                 typeof cost.currency !== 'string' || 
                 typeof cost.category !== 'string' || 
@@ -55,10 +66,12 @@
             const transaction = db.transaction(['costs'], 'readwrite');
             const objectStore = transaction.objectStore('costs');
 
+            // Extracts date components from current date or provided date
+            // JavaScript months are 0-indexed, so add 1 for storage
             const now = new Date();
-            const day = now.getDate();
-            const month = now.getMonth() + 1; 
-            const year = now.getFullYear();
+            const day = cost.day !== undefined ? cost.day : now.getDate();
+            const month = cost.month !== undefined ? cost.month : (now.getMonth() + 1);
+            const year = cost.year !== undefined ? cost.year : now.getFullYear();
             
             const costItem = {
                 sum: cost.sum,
@@ -78,6 +91,8 @@
                 reject(new Error('Failed to add cost: ' + request.error));
             };
             
+            // Returns added cost item without database ID
+            // Provides confirmation of successful insertion
             request.onsuccess = function() {
          
                 resolve({
@@ -89,12 +104,16 @@
             };
         });
     }
+    // Retrieves monthly report with all costs for specified period
+    // Uses composite index for efficient year-month querying
     function getReport(db, year, month, currency) {
         return new Promise(function(resolve, reject) {
             const transaction = db.transaction(['costs'], 'readonly');
             const objectStore = transaction.objectStore('costs');
             const index = objectStore.index('yearMonth');
             
+            // Queries costs matching exact year and month combination
+            // Composite index enables fast date-based filtering
             const range = IDBKeyRange.only([year, month]);
             const request = index.getAll(range);
             
@@ -102,6 +121,8 @@
                 reject(new Error('Failed to get report: ' + request.error));
             };
             
+            // Transforms costs and calculates total sum
+            // Returns report object with costs array and total amount
             request.onsuccess = function() {
                 const costs = request.result;
                 
@@ -135,6 +156,8 @@
         });
     }
     
+    // Exposes idb object to global window for vanilla JavaScript usage
+    // Allows library to be used without module system
     if (typeof window !== 'undefined') {
         window.idb = {
             openCostsDB: openCostsDB

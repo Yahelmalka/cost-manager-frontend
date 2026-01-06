@@ -9,34 +9,38 @@ import {
 import { getExchangeRateURL, setExchangeRateURL, DEFAULT_EXCHANGE_RATE_URL } from '../utils/currencyConverter';
 import PageLayout from './common/PageLayout';
 
+// Component allows users to configure exchange rate API endpoint
+// Settings are persisted in localStorage for future sessions
 function Settings() {
+    // State for URL input, validation feedback, and save confirmation
+    // Tracks user input and provides visual feedback on actions
     const [url, setUrl] = useState('');
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
+    // Loads current URL from localStorage on component mount
     useEffect(function() {
         const currentUrl = getExchangeRateURL();
         setUrl(currentUrl);
     }, []);
 
 
+    // Validates and saves the exchange rate URL to localStorage
+    // Checks URL format and provides error feedback if invalid
     const handleSubmit = function(event) {
         event.preventDefault();
         setError('');
         setSuccess(false);
-        
-        // Validate URL
+
         if (!url.trim()) {
             setError('Please enter a valid URL');
             return;
         }
         
         try {
-            // Basic URL validation
             new URL(url);
             setExchangeRateURL(url.trim());
             setSuccess(true);
-            
-            // Clear success message after 3 seconds
+    
             setTimeout(function() {
                 setSuccess(false);
             }, 3000);
@@ -45,6 +49,8 @@ function Settings() {
         }
     };
 
+    // Resets URL to default server endpoint
+    // Restores original configuration and saves to localStorage
     const handleReset = function() {
         setUrl(DEFAULT_EXCHANGE_RATE_URL);
         setExchangeRateURL(DEFAULT_EXCHANGE_RATE_URL);

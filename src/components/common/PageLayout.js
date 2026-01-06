@@ -2,17 +2,13 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import PrimaryCard from './PrimaryCard';
 
-/**
- * PageLayout component for consistent page structure
- * @param {Object} props - Component props
- * @param {string} props.title - Page title
- * @param {string} props.subtitle - Optional page subtitle
- * @param {React.ReactNode} props.children - Page content
- * @param {string|number} props.maxWidth - Maximum width for content
- */
+// Reusable page layout component with centered title and content card
+// Provides consistent structure across all application pages
 function PageLayout({ title, subtitle, children, maxWidth = 'md' }) {
     return (
         <Box sx={{ py: 4, px: 2 }}>
+            {/* Centered page title with elegant serif font styling */}
+            {/* Uses Playfair Display for premium editorial appearance */}
             <Box sx={{ maxWidth: 1200, mx: 'auto', mb: 4 }}>
                 <Typography 
                     variant="h4" 
@@ -41,6 +37,8 @@ function PageLayout({ title, subtitle, children, maxWidth = 'md' }) {
                     </Typography>
                 )}
             </Box>
+            {/* Content wrapped in primary card with specified max width */}
+            {/* Ensures consistent card styling and responsive layout */}
             <PrimaryCard maxWidth={maxWidth}>
                 {children}
             </PrimaryCard>

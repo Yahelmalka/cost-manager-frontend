@@ -16,14 +16,21 @@ import PageLayout from './common/PageLayout';
 import PrimaryCard from './common/PrimaryCard';
 import TotalSummary from './common/TotalSummary';
 
+// Component displays monthly spending trends as a bar chart
+// Shows total costs for each month in a selected year
 function BarChart({ db }) {
+    // State management for chart filters, data, and loading states
+    // Tracks user selections and chart rendering status
     const [year, setYear] = useState(new Date().getFullYear());
     const [currency, setCurrency] = useState('USD');
     const [chartData, setChartData] = useState([]);
+    const [originalCosts, setOriginalCosts] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [exchangeRates, setExchangeRates] = useState(null);
 
+    // Fetches exchange rates on component mount for currency conversion
+    // Uses configured URL from settings or default server endpoint
     useEffect(function() {
         async function loadRates() {
             const url = getExchangeRateURL();
@@ -33,6 +40,17 @@ function BarChart({ db }) {
         loadRates();
     }, []);
 
+    // Automatically updates chart when currency selection changes
+    // Recalculates monthly totals in new currency without reloading data
+    useEffect(function() {
+        if (originalCosts && exchangeRates && originalCosts.length > 0) {
+            const data = prepareBarChartData(originalCosts, currency, exchangeRates);
+            setChartData(data);
+        }
+    }, [currency, exchangeRates, originalCosts]);
+
+    // Generates bar chart data by querying database and processing costs
+    // Stores original costs for automatic currency conversion updates
     const handleGenerateChart = async function() {
         if (!exchangeRates) {
             setError('Exchange rates not loaded yet. Please wait...');
@@ -47,11 +65,16 @@ function BarChart({ db }) {
             
             if (costs.length === 0) {
                 setChartData([]);
+                setOriginalCosts(null);
                 setError('No costs found for this year');
                 setLoading(false);
                 return;
             }
             
+            // Store original costs for currency conversion
+            setOriginalCosts(costs);
+            
+            // Prepare chart data with current currency
             const data = prepareBarChartData(costs, currency, exchangeRates);
             setChartData(data);
         } catch (err) {
@@ -61,6 +84,8 @@ function BarChart({ db }) {
         }
     };
 
+    // Calculates total spending for the year from chart data
+    // Used to display summary information above the chart
     const total = chartData.reduce(function(sum, item) {
         return sum + (item.value || 0);
     }, 0);
@@ -73,6 +98,7 @@ function BarChart({ db }) {
             subtitle="View your spending trends across all months in a year"
             maxWidth="lg"
         >
+            {/* Display total summary above chart */}
             <TotalSummary
                 total={total}
                 currency={currency}
@@ -138,11 +164,16 @@ function BarChart({ db }) {
                 </Alert>
             )}
             
+            {/* Renders animated bar chart with monthly cost data */}
+            {/* Key prop triggers animation when data or currency changes */}
             {chartData.length > 0 ? (
                 <PrimaryCard>
                     <Box sx={{ width: '100%', height: 450, mt: 2 }}>
                         <ResponsiveContainer>
-                            <RechartsBarChart data={chartData}>
+                            <RechartsBarChart 
+                                data={chartData}
+                                key={`${year}-${currency}-${JSON.stringify(chartData.map(d => d.value)).slice(0, 20)}`}
+                            >
                                 <CartesianGrid 
                                     strokeDasharray="3 3" 
                                     stroke="rgba(193, 219, 232, 0.3)"
@@ -166,6 +197,7 @@ function BarChart({ db }) {
                                         borderRadius: 8,
                                         color: '#43302E'
                                     }}
+                                    animationDuration={200}
                                 />
                                 <Legend 
                                     wrapperStyle={{
@@ -179,6 +211,10 @@ function BarChart({ db }) {
                                     fill="#C1DBE8" 
                                     name={`Total (${currency})`}
                                     radius={[8, 8, 0, 0]}
+                                    isAnimationActive={true}
+                                    animationBegin={0}
+                                    animationDuration={800}
+                                    animationEasing="ease-out"
                                 />
                             </RechartsBarChart>
                         </ResponsiveContainer>

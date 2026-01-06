@@ -21,15 +21,24 @@ import { fetchExchangeRates, convertCurrency, getExchangeRateURL } from '../util
 import PageLayout from './common/PageLayout';
 import PrimaryCard from './common/PrimaryCard';
 
+// Component displays detailed monthly expense reports in table format
+// Supports currency conversion and automatic recalculation on currency change
 function Report({ db }) {
+    // State variables for report filters, data, and UI feedback
+    // Tracks selected period, currency, and report generation status
     const [year, setYear] = useState(new Date().getFullYear());
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [currency, setCurrency] = useState('USD');
     const [report, setReport] = useState(null);
+    const [originalCosts, setOriginalCosts] = useState(null);
+    const [reportYear, setReportYear] = useState(null);
+    const [reportMonth, setReportMonth] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [exchangeRates, setExchangeRates] = useState(null);
 
+    // Loads exchange rates on component mount for currency conversion
+    // Retrieves URL from settings or uses default server endpoint
     useEffect(function() {
         async function loadRates() {
             const url = getExchangeRateURL();
@@ -39,6 +48,36 @@ function Report({ db }) {
         loadRates();
     }, []);
 
+    // Automatically recalculates report when currency selection changes
+    // Converts all costs to new currency and updates totals
+    useEffect(function() {
+        if (originalCosts && exchangeRates && reportYear !== null && reportMonth !== null) {
+            const convertedCosts = originalCosts.map(function(cost) {
+                return {
+                    ...cost,
+                    sum: convertCurrency(cost.sum, cost.currency, currency, exchangeRates)
+                };
+            });
+                    
+            let total = 0;
+            convertedCosts.forEach(function(cost) {
+                total += cost.sum;
+            });
+            
+            setReport({
+                year: reportYear,
+                month: reportMonth,
+                costs: convertedCosts,
+                total: {
+                    currency: currency,
+                    total: Math.round(total * 100) / 100
+                }
+            });
+        }
+    }, [currency, exchangeRates, originalCosts, reportYear, reportMonth]);
+
+    // Generates monthly report by querying database and converting currencies
+    // Stores original costs for automatic recalculation when currency changes
     const handleGenerateReport = async function() {
         if (!exchangeRates) {
             setError('Exchange rates not loaded yet. Please wait...');
@@ -50,6 +89,10 @@ function Report({ db }) {
         
         try {
             const reportData = await db.getReport(year, month, currency);
+            setOriginalCosts(reportData.costs);
+            setReportYear(year);
+            setReportMonth(month);
+            
             const convertedCosts = reportData.costs.map(function(cost) {
                 return {
                     ...cost,
@@ -159,6 +202,8 @@ function Report({ db }) {
                 </Alert>
             )}
             
+            {/* Displays report table with all expense items for selected period */}
+            {/* Shows date, category, description, and converted sum for each cost */}
             {report && (
                 <PrimaryCard>
                     <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#43302E' }}>
@@ -209,6 +254,8 @@ function Report({ db }) {
                                 </Table>
                             </TableContainer>
                             
+                            {/* Total summary chip showing converted total amount */}
+                            {/* Displays at bottom of table with highlighted styling */}
                             <Box sx={{ 
                                 mt: 4, 
                                 display: 'flex', 
